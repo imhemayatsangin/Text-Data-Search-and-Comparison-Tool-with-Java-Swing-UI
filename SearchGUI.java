@@ -15,7 +15,6 @@ import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.JTextComponent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.DefaultTableModel;
 
 @SuppressWarnings("serial")
 public class SearchGUI extends JFrame implements ActionListener {
@@ -25,9 +24,17 @@ public class SearchGUI extends JFrame implements ActionListener {
     JLabel label = new JLabel("Enter your search term!");
 
     // define the table model and table for displaying search results
-    DefaultTableModel tableModel = new DefaultTableModel(new Object[]{"Column 1", "Column 2", "Column 3"}, 0);
+    TableClass tableModel = new TableClass(new Object[][]{}, new Object[]{"Column 1", "Column 2", "Column 3"});
     JTable table = new JTable(tableModel);
 
+
+ // define the table model and table for displaying search results
+// DefaultTableModel tableModel = new DefaultTableModel(new Object[]{"Column 1", "Column 2", "Column 3"}, 0);
+// JTable table = new JTable(tableModel);
+//
+//    
+    
+    
     public SearchGUI() {
         setLayout(new FlowLayout(FlowLayout.CENTER, 20, 50)); // set the layout manager
 
@@ -91,15 +98,17 @@ public class SearchGUI extends JFrame implements ActionListener {
 
                 // clear the table and add some example data
                 tableModel.setRowCount(0);
-                
+
                 for(int i=1;i<=10;i++) {
-                	
-                	tableModel.addRow(new Object[]{"Result "+i, "Data "+i, "Info "+i});
+                    tableModel.addRow(new Object[]{"Result "+i, "Data "+i, "Info "+i});
                 }
-                
             } else {
                 System.out.println("TextBoxResult: Textbox is empty");
             }
         }
+    }
+
+    public static void main(String[] args) {
+        new SearchGUI();
     }
 }
