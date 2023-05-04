@@ -14,6 +14,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
+import javax.swing.text.DocumentFilter;
 import javax.swing.text.JTextComponent;
 import javax.swing.event.DocumentListener;
 
@@ -69,6 +70,25 @@ public class SearchGUI extends JFrame implements ActionListener {
         setIconImage(new ImageIcon("icon.png").getImage());
         setBackground(Color.WHITE);
 
+        
+        
+        // add document listener to the text field for checking the textField empty validation.
+      
+
+        // add document filter to the text field to restrict input to only words
+        ((javax.swing.text.AbstractDocument) SearchBox.getDocument()).setDocumentFilter(new javax.swing.text.DocumentFilter() {
+            @Override
+            public void replace(DocumentFilter.FilterBypass fb, int offset, int length, String text, javax.swing.text.AttributeSet attrs) throws javax.swing.text.BadLocationException {
+                String newText = text.replaceAll("\\d", ""); // remove any digits from the input text
+                super.replace(fb, offset, length, newText, attrs);
+            }
+        });
+
+        
+        
+        
+        
+        
         // add document listener to the text field for checking the textField empty validation.
         JTextComponent searchBox = (JTextComponent) SearchBox;
         searchBox.getDocument().addDocumentListener(new DocumentListener() {
