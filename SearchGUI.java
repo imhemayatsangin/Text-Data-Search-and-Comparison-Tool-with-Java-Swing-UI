@@ -37,6 +37,8 @@ public class SearchGUI extends JFrame implements ActionListener {
 
     // define chart panel for displaying search results
     ChartPanel chartPanel = new ChartPanel(null);
+    
+    
 
     public SearchGUI() {
         setLayout(new FlowLayout(FlowLayout.CENTER, 20, 50)); // set the layout manager
@@ -117,8 +119,12 @@ public class SearchGUI extends JFrame implements ActionListener {
                 }
 
                 // create a line chart with the data
-                JFreeChart chart = ChartFactory.createLineChart("Search Results", "Result", "Data", dataset);
+//                JFreeChart chart = ChartFactory.createLineChart("Search Results", "Result", "Data", dataset);
+// here i want to add barchart instead of linechart.
+                JFreeChart chart = ChartFactory.createBarChart("Search Results", "Result", "Data", dataset);
 
+                
+                
                 // customize the chart
                 CategoryPlot plot = chart.getCategoryPlot();
                 plot.setRangeGridlinePaint(Color.BLACK);
