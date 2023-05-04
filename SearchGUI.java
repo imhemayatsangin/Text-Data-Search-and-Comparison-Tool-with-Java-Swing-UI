@@ -1,3 +1,4 @@
+//import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -8,13 +9,20 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-
+//import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.text.JTextComponent;
 import javax.swing.event.DocumentListener;
+
+import org.jfree.chart.ChartFactory;
+//import org.jfree.chart.ChartFrame;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.data.category.DefaultCategoryDataset;
 
 @SuppressWarnings("serial")
 public class SearchGUI extends JFrame implements ActionListener {
@@ -27,14 +35,9 @@ public class SearchGUI extends JFrame implements ActionListener {
     TableClass tableModel = new TableClass(new Object[][]{}, new Object[]{"Column 1", "Column 2", "Column 3"});
     JTable table = new JTable(tableModel);
 
+    // define chart panel for displaying search results
+    ChartPanel chartPanel = new ChartPanel(null);
 
- // define the table model and table for displaying search results
-// DefaultTableModel tableModel = new DefaultTableModel(new Object[]{"Column 1", "Column 2", "Column 3"}, 0);
-// JTable table = new JTable(tableModel);
-//
-//    
-    
-    
     public SearchGUI() {
         setLayout(new FlowLayout(FlowLayout.CENTER, 20, 50)); // set the layout manager
 
@@ -48,10 +51,14 @@ public class SearchGUI extends JFrame implements ActionListener {
 
         // add scroll pane for the table
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setPreferredSize(new Dimension(1000, 600));
+        scrollPane.setPreferredSize(new Dimension(1000, 200));
         add(scrollPane);
 
-        setSize(1100, 900);
+        // add chart panel below the table
+        chartPanel.setPreferredSize(new Dimension(1000, 400));
+        add(chartPanel);
+
+        setSize(1100, 1000);
         setLocationRelativeTo(null); // centers the JFrame on the screen
         setTitle("My Text Data Search and Comparison Tool");
         setResizable(false);
@@ -102,13 +109,30 @@ public class SearchGUI extends JFrame implements ActionListener {
                 for(int i=1;i<=10;i++) {
                     tableModel.addRow(new Object[]{"Result "+i, "Data "+i, "Info "+i});
                 }
+
+                // create a chart and show it in the same panel as the table
+                DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+                for (int i = 1; i <= 10; i++) {
+                    dataset.addValue(i, "Data", "Result " + i);
+                }
+
+                // create a line chart with the data
+                JFreeChart chart = ChartFactory.createLineChart("Search Results", "Result", "Data", dataset);
+
+                // customize the chart
+                CategoryPlot plot = chart.getCategoryPlot();
+                plot.setRangeGridlinePaint(Color.BLACK);
+                plot.setBackgroundPaint(Color.WHITE);
+                plot.setDomainGridlinePaint(Color.BLACK);
+
+                // set the new chart on the existing chart panel and refresh
+                chartPanel.setChart(chart);
+                chartPanel.revalidate();
+                chartPanel.repaint();
             } else {
                 System.out.println("TextBoxResult: Textbox is empty");
             }
         }
     }
 
-    public static void main(String[] args) {
-        new SearchGUI();
-    }
 }
