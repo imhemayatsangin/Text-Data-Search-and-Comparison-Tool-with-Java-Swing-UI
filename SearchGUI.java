@@ -162,6 +162,14 @@ public class SearchGUI extends JFrame implements ActionListener {
                     buildInvertedIndex(directory);
                  // search for the word in the files
                     List<String[]> searchResults = searchForWord(searchText);
+                    
+                    if (searchResults.isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "The word was not found in the files.");
+                    } else {
+                    
+                    
+                    
+                    
                     // display results in table
                     tableModel.setRowCount(0);
                     int count = 0;
@@ -171,6 +179,7 @@ public class SearchGUI extends JFrame implements ActionListener {
                         }
                         tableModel.addRow(row);
                         count++;
+                    }
                     }
                     // clear the table and add some example data
 //                    tableModel.setRowCount(0);
@@ -241,30 +250,32 @@ public class SearchGUI extends JFrame implements ActionListener {
             }
         }
     }
-    private static List<String[]> searchForWord(String wordToFind) {
-        String stemmedWord = stemmer.stemWord(wordToFind.toLowerCase(Locale.ENGLISH));
-        HashSet<File> fileSet = myHashMap.get(stemmedWord);
-        List<String[]> result = new ArrayList<>();
-        if (fileSet == null) {
-            System.out.println("Word not found");
-        } else {
-            System.out.println("Files containing '" + wordToFind + "':");
-            for (File file : fileSet) {
-                long startTime = System.currentTimeMillis();
-                String content = readFileContent(file);
-                if (content.contains(wordToFind)) {
-                    long endTime = System.currentTimeMillis();
-                    String[] fileResult = new String[2];
-                    fileResult[0] = file.getName();
-                    fileResult[1] = Long.toString(endTime - startTime) + "ms";
-                    result.add(fileResult);
+    private List<String[]> searchForWord(String word) {
+        List<String[]> results = new ArrayList<>();
+        HashSet<File> files = myHashMap.get(stemmer.stemWord(word)); // get the set of files that contain the stemmed word
+        if (files != null) {
+            for (File file : files) {
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    String line;
+                    int lineNumber = 0;
+                    while ((line = br.readLine()) != null) {
+                        lineNumber++;
+                        if (line.toLowerCase(Locale.ENGLISH).contains(word.toLowerCase(Locale.ENGLISH))) { // check if the line contains the word
+                            results.add(new String[]{file.getName(), line, String.valueOf(lineNumber)}); // add the filename, line and line number to the results
+                        }
+                    }
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         }
-        return result;
+        return results;
     }
     
-    private static String readFileContent(File file) {
+    @SuppressWarnings("unused")
+	private static String readFileContent(File file) {
         StringBuilder content = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
