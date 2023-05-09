@@ -4,7 +4,17 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -25,15 +35,21 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.data.category.DefaultCategoryDataset;
 
-@SuppressWarnings("serial")
+
 public class SearchGUI extends JFrame implements ActionListener {
 
+	
+	private static final long serialVersionUID = 1L;
+    private static final PorterStemmer stemmer = new PorterStemmer();
+    private static final Map<String, HashSet<File>> myHashMap = new HashMap<>();
+    
+    
     JButton SearchBtn = new JButton("Search");
     JTextField SearchBox = new JTextField();
     JLabel label = new JLabel("Enter your search term!");
 
     // define the table model and table for displaying search results
-    TableClass tableModel = new TableClass(new Object[][]{}, new Object[]{"Column 1", "Column 2", "Column 3"});
+    TableClass tableModel = new TableClass(new Object[][]{}, new Object[]{"Document ID", "ExecutionTime"});
     JTable table = new JTable(tableModel);
 
     // define chart panel for displaying search results
@@ -42,6 +58,8 @@ public class SearchGUI extends JFrame implements ActionListener {
     
 
     public SearchGUI() {
+    	
+    	
         setLayout(new FlowLayout(FlowLayout.CENTER, 20, 50)); // set the layout manager
 
         label.setPreferredSize(new Dimension(200, 30));
@@ -85,10 +103,6 @@ public class SearchGUI extends JFrame implements ActionListener {
         });
 
         
-        
-        
-        
-        
         // add document listener to the text field for checking the textField empty validation.
         JTextComponent searchBox = (JTextComponent) SearchBox;
         searchBox.getDocument().addDocumentListener(new DocumentListener() {
@@ -124,13 +138,29 @@ public class SearchGUI extends JFrame implements ActionListener {
             if (!SearchBox.getText().isEmpty()) {
                 String searchText = SearchBox.getText();
                 System.out.println("TextBoxResult: " + searchText);
-
-                // clear the table and add some example data
-                tableModel.setRowCount(0);
-
-                for(int i=1;i<=10;i++) {
-                    tableModel.addRow(new Object[]{"Result "+i, "Data "+i, "Info "+i});
+                
+               String directoryPath = "src/trainings/"; // the directory containing the files
+                
+                File directory = new File(directoryPath);
+                if (!directory.isDirectory()) {
+                    System.out.println(directoryPath + " is not a directory");
+                    return;
                 }
+                // build inverted index
+                buildInvertedIndex(directory);
+             // search for the word in the files
+                List<String[]> searchResults = searchForWord(searchText);
+                // display results in table
+                tableModel.setRowCount(0);
+                for (String[] row : searchResults) {
+                	tableModel.addRow(row);
+                }
+                // clear the table and add some example data
+//                tableModel.setRowCount(0);
+//
+//                for(int i=1;i<=10;i++) {
+//                    tableModel.addRow(new Object[]{"Result "+i, "Data "+i, "Info "+i});
+//                }
 
                 // create a chart and show it in the same panel as the table
                 DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -159,6 +189,62 @@ public class SearchGUI extends JFrame implements ActionListener {
                 System.out.println("TextBoxResult: Textbox is empty");
             }
         }
+    }
+    
+    private static void buildInvertedIndex(File directory) {
+        for (File file : directory.listFiles()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    for (String word : line.split("\\s+")) {
+                        String stemmedWord = stemmer.stemWord(word);
+                        if (!myHashMap.containsKey(stemmedWord)) {
+                        	myHashMap.put(stemmedWord, new HashSet<>());
+                        }
+                        myHashMap.get(stemmedWord).add(file);
+                    }
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("Failed to read file: " + file.getAbsolutePath());
+            } catch (IOException e) {
+                System.out.println("Error reading file: " + file.getAbsolutePath());
+            }
+        }
+    }
+    private static List<String[]> searchForWord(String wordToFind) {
+        String stemmedWord = stemmer.stemWord(wordToFind.toLowerCase(Locale.ENGLISH));
+        HashSet<File> fileSet = myHashMap.get(stemmedWord);
+        List<String[]> result = new ArrayList<>();
+        if (fileSet == null) {
+            System.out.println("Word not found");
+        } else {
+            System.out.println("Files containing '" + wordToFind + "':");
+            for (File file : fileSet) {
+                long startTime = System.currentTimeMillis();
+                String content = readFileContent(file);
+                if (content.contains(wordToFind)) {
+                    long endTime = System.currentTimeMillis();
+                    String[] fileResult = new String[2];
+                    fileResult[0] = file.getName();
+                    fileResult[1] = Long.toString(endTime - startTime) + "ms";
+                    result.add(fileResult);
+                }
+            }
+        }
+        return result;
+    }
+    
+    private static String readFileContent(File file) {
+        StringBuilder content = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                content.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading file: " + file.getAbsolutePath());
+        }
+        return content.toString();
     }
 
 }
