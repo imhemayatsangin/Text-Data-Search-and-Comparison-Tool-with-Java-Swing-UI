@@ -19,6 +19,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 //import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -27,36 +28,30 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.JTextComponent;
 import javax.swing.event.DocumentListener;
-
 import org.jfree.chart.ChartFactory;
 //import org.jfree.chart.ChartFrame;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.data.category.DefaultCategoryDataset;
-
-
 public class SearchGUI extends JFrame implements ActionListener {
 
-	
 	private static final long serialVersionUID = 1L;
     private static final PorterStemmer stemmer = new PorterStemmer();
     private static final Map<String, HashSet<File>> myHashMap = new HashMap<>();
-    
-    
+    private HashSet<String> stopWords = new HashSet<>();
+  
     JButton SearchBtn = new JButton("Search");
     JTextField SearchBox = new JTextField();
     JLabel label = new JLabel("Enter your search term!");
 
     // define the table model and table for displaying search results
-    TableClass tableModel = new TableClass(new Object[][]{}, new Object[]{"Document ID", "ExecutionTime"});
+    TableClass tableModel = new TableClass(new Object[][]{}, new Object[]{"Document ID", "Phrase", "Line"});
     JTable table = new JTable(tableModel);
 
     // define chart panel for displaying search results
     ChartPanel chartPanel = new ChartPanel(null);
     
-    
-
     public SearchGUI() {
     	
     	
@@ -72,14 +67,14 @@ public class SearchGUI extends JFrame implements ActionListener {
 
         // add scroll pane for the table
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setPreferredSize(new Dimension(1000, 200));
+        scrollPane.setPreferredSize(new Dimension(900, 200));
         add(scrollPane);
 
         // add chart panel below the table
         chartPanel.setPreferredSize(new Dimension(1000, 400));
         add(chartPanel);
 
-        setSize(1100, 1000);
+        setSize(1000, 900);
         setLocationRelativeTo(null); // centers the JFrame on the screen
         setTitle("My Text Data Search and Comparison Tool");
         setResizable(false);
@@ -89,9 +84,17 @@ public class SearchGUI extends JFrame implements ActionListener {
         setBackground(Color.WHITE);
 
         
-        
-        // add document listener to the text field for checking the textField empty validation.
-      
+        // Load stopwords from file
+        try (BufferedReader br = new BufferedReader(new FileReader("src/stopwords.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                stopWords.add(line.trim().toLowerCase(Locale.ENGLISH));
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // add document filter to the text field to restrict input to only words
         ((javax.swing.text.AbstractDocument) SearchBox.getDocument()).setDocumentFilter(new javax.swing.text.DocumentFilter() {
@@ -139,53 +142,80 @@ public class SearchGUI extends JFrame implements ActionListener {
                 String searchText = SearchBox.getText();
                 System.out.println("TextBoxResult: " + searchText);
                 
-               String directoryPath = "src/trainings/"; // the directory containing the files
-                
-                File directory = new File(directoryPath);
-                if (!directory.isDirectory()) {
-                    System.out.println(directoryPath + " is not a directory");
+                // Check if the search term is a stopword
+                if (stopWords.contains(searchText)) {
+                    SearchBox.setText("");
+                    JOptionPane.showMessageDialog(null, "Stop Word!");
                     return;
                 }
-                // build inverted index
-                buildInvertedIndex(directory);
-             // search for the word in the files
-                List<String[]> searchResults = searchForWord(searchText);
-                // display results in table
-                tableModel.setRowCount(0);
-                for (String[] row : searchResults) {
-                	tableModel.addRow(row);
+                
+                else {
+                	
+                    String directoryPath = "src/trainings/"; // the directory containing the files
+                    
+                    File directory = new File(directoryPath);
+                    if (!directory.isDirectory()) {
+                        System.out.println(directoryPath + " is not a directory");
+                        return;
+                    }
+                    // build inverted index
+                    buildInvertedIndex(directory);
+                 // search for the word in the files
+                    List<String[]> searchResults = searchForWord(searchText);
+                    // display results in table
+                    tableModel.setRowCount(0);
+                    int count = 0;
+                    for (String[] row : searchResults) {
+                        if (count == 10) { // display only top 10 results
+                            break;
+                        }
+                        tableModel.addRow(row);
+                        count++;
+                    }
+                    // clear the table and add some example data
+//                    tableModel.setRowCount(0);
+    //
+//                    for(int i=1;i<=10;i++) {
+//                        tableModel.addRow(new Object[]{"Result "+i, "Data "+i, "Info "+i});
+//                    }
+
+                    // create a chart and show it in the same panel as the table
+                    DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+                    for (int i = 1; i <= 10; i++) {
+                        dataset.addValue(i, "Data", "Result " + i);
+                    }
+
+                    // create a line chart with the data
+//                    JFreeChart chart = ChartFactory.createLineChart("Search Results", "Result", "Data", dataset);
+    // here i want to add barchart instead of linechart.
+                    JFreeChart chart = ChartFactory.createBarChart("Search Results", "Result", "Data", dataset);
+
+                    
+                    
+                    // customize the chart
+                    CategoryPlot plot = chart.getCategoryPlot();
+                    plot.setRangeGridlinePaint(Color.BLACK);
+                    plot.setBackgroundPaint(Color.WHITE);
+                    plot.setDomainGridlinePaint(Color.BLACK);
+
+                    // set the new chart on the existing chart panel and refresh
+                    chartPanel.setChart(chart);
+                    chartPanel.revalidate();
+                    chartPanel.repaint();
+                	
+                	
+                	
                 }
-                // clear the table and add some example data
-//                tableModel.setRowCount(0);
-//
-//                for(int i=1;i<=10;i++) {
-//                    tableModel.addRow(new Object[]{"Result "+i, "Data "+i, "Info "+i});
-//                }
-
-                // create a chart and show it in the same panel as the table
-                DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-                for (int i = 1; i <= 10; i++) {
-                    dataset.addValue(i, "Data", "Result " + i);
-                }
-
-                // create a line chart with the data
-//                JFreeChart chart = ChartFactory.createLineChart("Search Results", "Result", "Data", dataset);
-// here i want to add barchart instead of linechart.
-                JFreeChart chart = ChartFactory.createBarChart("Search Results", "Result", "Data", dataset);
-
                 
                 
-                // customize the chart
-                CategoryPlot plot = chart.getCategoryPlot();
-                plot.setRangeGridlinePaint(Color.BLACK);
-                plot.setBackgroundPaint(Color.WHITE);
-                plot.setDomainGridlinePaint(Color.BLACK);
-
-                // set the new chart on the existing chart panel and refresh
-                chartPanel.setChart(chart);
-                chartPanel.revalidate();
-                chartPanel.repaint();
-            } else {
+                
+                
+                
+                
+          
+            }
+            
+            else {
                 System.out.println("TextBoxResult: Textbox is empty");
             }
         }
